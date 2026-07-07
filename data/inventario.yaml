@@ -1,0 +1,6 @@
+- ip: 10.0.0.1
+  hostname: router-test
+  mac: 00:AA:BB:CC:DD:EE
+  tipo: router
+  sistema: Cisco IOS
+  estado: activo
