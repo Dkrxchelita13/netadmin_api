@@ -1,10 +1,18 @@
 [
     {
-        "ip": "10.0.0.1",
-        "hostname": "router-test",
-        "mac": "00:AA:BB:CC:DD:EE",
+        "ip": "192.168.1.1",
+        "hostname": "router-actualizado",
+        "mac": "00:11:22:33:44:55",
         "tipo": "router",
-        "sistema": "Cisco IOS",
+        "sistema": "Cisco IOS XE",
+        "estado": "activo"
+    },
+    {
+        "ip": "192.168.163.1",
+        "hostname": "tzinacan",
+        "mac": "pendiente",
+        "tipo": "router",
+        "sistema": "desconocido",
         "estado": "activo"
     }
 ]
