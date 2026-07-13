@@ -49,3 +49,18 @@ def test_exportar_inventario():
 
     assert response.status_code == 200
     assert response.json()["mensaje"] == "Inventario exportado correctamente"
+def test_comando_red_simulado():
+    datos = {
+        "ip": "192.168.163.10",
+        "username": "admin",
+        "password": "cisco",
+        "secret": "class",
+        "device_type": "simulador_cisco",
+        "comando": "show ip interface brief"
+    }
+
+    response = client.post("/red/comando", json=datos)
+
+    assert response.status_code == 200
+    assert response.json()["ip"] == "192.168.163.10"
+    assert "GigabitEthernet0/0" in response.json()["salida"]
