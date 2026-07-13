@@ -1,1 +1,1 @@
-<?xml version="1.0" encoding="UTF-8" ?><inventario><dispositivos><item><ip>10.0.0.1</ip><hostname>router-test</hostname><mac>00:AA:BB:CC:DD:EE</mac><tipo>router</tipo><sistema>Cisco IOS</sistema><estado>activo</estado></item></dispositivos></inventario>
+<?xml version="1.0" encoding="UTF-8" ?><inventario><dispositivos></dispositivos></inventario>
