@@ -1,17 +1,18 @@
-# Manual técnico - NetAdmin API
+# Manual Técnico - NetAdmin API
 
-## 1. Requisitos
+## 1. Nombre del proyecto
 
-- Python 3.12
-- Git
-- Postman
-- Visual Studio Code
-- Navegador web
+**NetAdmin API – Sistema de Inventario, Monitoreo y Administración de Red**
 
-## 2. Instalación
+## 2. Objetivo del sistema
 
-Clonar el repositorio:
+Desarrollar una aplicación en Python que permita recabar información básica de una red, almacenar dispositivos en un inventario estructurado y administrar la información mediante una API REST.
 
-```bash
-git clone https://github.com/Dkrxchelita13/netadmin_api.git
-cd netadmin_api
+El sistema permite registrar dispositivos manualmente, consultar el inventario, buscar dispositivos por dirección IP, actualizar registros, eliminar dispositivos obsoletos, escanear una red local simulada y exportar la información en formatos JSON, YAML y XML.
+
+## 3. Alcance del proyecto
+
+El proyecto fue desarrollado para trabajar en una red local o simulada. En esta práctica se utilizó la red simulada:
+
+```txt
+192.168.163.0/28

@@ -1,1 +1,18 @@
-[]
+- ip: 192.168.1.50
+  hostname: PC-LAB-01
+  mac: AA:BB:CC:DD:EE:FF
+  tipo: Workstation
+  sistema: Windows 11
+  estado: activo
+- ip: 192.168.163.1
+  hostname: tzinacan
+  mac: pendiente
+  tipo: router
+  sistema: desconocido
+  estado: activo
+- ip: 192.168.163.128
+  hostname: desconocido
+  mac: pendiente
+  tipo: desconocido
+  sistema: desconocido
+  estado: activo

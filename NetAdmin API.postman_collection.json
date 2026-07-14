@@ -1,0 +1,437 @@
+{
+  "info": {
+    "_postman_id": "7e5a40ea-bcf4-458b-8d30-51141516acae",
+    "name": "NetAdmin API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51987418"
+  },
+  "item": [
+    {
+      "name": "Get inicio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            ""
+          ]
+        },
+        "description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
+      },
+      "response": []
+    },
+    {
+      "name": "Post crear dispositivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Successful POST request\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ip\": \"192.168.1.200\",\n  \"hostname\": \"equipo-creado\",\n  \"mac\": \"00:AA:BB:CC:DD:20\",\n  \"tipo\": \"PC\",\n  \"sistema\": \"Windows 11\",\n  \"estado\": \"activo\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/dispositivos",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "dispositivos"
+          ]
+        },
+        "description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+      },
+      "response": []
+    },
+    {
+      "name": "Listar dispositivos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/dispositivos",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "dispositivos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Buscar por IP",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/dispositivos/10.10.10.10",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "dispositivos",
+            "10.10.10.10"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Actualizar dispositivo",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"ip\": \"192.168.1.1\",\r\n  \"hostname\": \"router-actualizado\",\r\n  \"mac\": \"00:11:22:33:44:55\",\r\n  \"tipo\": \"router\",\r\n  \"sistema\": \"Cisco IOS XE\",\r\n  \"estado\": \"activo\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/dispositivos/192.168.1.1",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "dispositivos",
+            "192.168.1.1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "eliminar dispositivo de prueba",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/dispositivos/192.168.1.1",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "dispositivos",
+            "192.168.1.1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escanear red",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/escanear?red=192.168.163.0/28",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "escanear"
+          ],
+          "query": [
+            {
+              "key": "red",
+              "value": "192.168.163.0/28"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Exportar inventario",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/exportar",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "exportar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13 - Error 500 Paramiko",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"ip\": \"192.168.163.200\",\r\n  \"username\": \"usuario\",\r\n  \"password\": \"password\",\r\n  \"comando\": \"hostname\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/linux/comando",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "linux",
+            "comando"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14 - Error 500 Netmiko",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"ip\": \"192.168.163.200\",\r\n  \"username\": \"admin\",\r\n  \"password\": \"cisco\",\r\n  \"secret\": \"class\",\r\n  \"device_type\": \"cisco_ios\",\r\n  \"comando\": \"show ip interface brief\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/red/comando",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "red",
+            "comando"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "hostnamecomandoparmiko",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"ip\": \"192.168.163.128\",\r\n  \"username\": \"netadmin\",\r\n  \"password\": \"netadmin123\",\r\n  \"comando\": \"df -h\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/linux/comando",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "linux",
+            "comando"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Registra el switch simulado en el inventario",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"ip\": \"192.168.163.10\",\r\n  \"hostname\": \"SW-NETADMIN\",\r\n  \"mac\": \"00:AA:BB:CC:DD:10\",\r\n  \"tipo\": \"switch\",\r\n  \"sistema\": \"Cisco IOS simulado\",\r\n  \"estado\": \"activo\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/dispositivos",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "dispositivos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Prueba /red/comando con Netmiko simulado",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"ip\": \"192.168.163.10\",\r\n  \"username\": \"admin\",\r\n  \"password\": \"cisco\",\r\n  \"secret\": \"class\",\r\n  \"device_type\": \"simulador_cisco\",\r\n  \"comando\": \"show ip interface brief\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/red/comando",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "red",
+            "comando"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Prueba otro comando Cisco",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"ip\": \"192.168.163.10\",\r\n  \"username\": \"admin\",\r\n  \"password\": \"cisco\",\r\n  \"secret\": \"class\",\r\n  \"device_type\": \"simulador_cisco\",\r\n  \"comando\": \"show vlan brief\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/red/comando",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "red",
+            "comando"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
