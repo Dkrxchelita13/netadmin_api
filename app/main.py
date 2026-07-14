@@ -1,28 +1,39 @@
 from fastapi import FastAPI, HTTPException
+
 from app.modelos import Dispositivo, ComandoRed, ComandoLinux
 from app.inventario import (
     agregar_dispositivo,
     listar_dispositivos,
     buscar_dispositivo,
     actualizar_dispositivo,
-    eliminar_dispositivo
+    eliminar_dispositivo,
+    listar_historial
 )
 from app.escaner import escanear_red
 from app.exportador import exportar_json, exportar_yaml, exportar_xml
 from app.netmiko_admin import ejecutar_comando_red
 from app.paramiko_admin import ejecutar_comando_linux
+from app.database import init_db
 
 
 app = FastAPI(
     title="NetAdmin API",
-    description="Sistema de inventario, monitoreo y administración de red",
-    version="1.0"
+    description="Sistema automatizado de inventario y administración de red",
+    version="2.0"
 )
+
+
+@app.on_event("startup")
+def iniciar_base_datos():
+    init_db()
 
 
 @app.get("/")
 def inicio():
-    return {"mensaje": "NetAdmin API funcionando correctamente"}
+    return {
+        "mensaje": "NetAdmin API funcionando correctamente",
+        "version": "2.0"
+    }
 
 
 @app.get("/dispositivos")
@@ -35,7 +46,10 @@ def obtener_dispositivo(ip: str):
     dispositivo = buscar_dispositivo(ip)
 
     if dispositivo is None:
-        raise HTTPException(status_code=404, detail="Dispositivo no encontrado")
+        raise HTTPException(
+            status_code=404,
+            detail="Dispositivo no encontrado"
+        )
 
     return dispositivo
 
@@ -45,23 +59,28 @@ def crear_dispositivo(dispositivo: Dispositivo):
     existente = buscar_dispositivo(dispositivo.ip)
 
     if existente:
-        raise HTTPException(status_code=400, detail="La IP ya existe en el inventario")
+        raise HTTPException(
+            status_code=400,
+            detail="La IP ya existe en el inventario"
+        )
 
-    nuevo = dispositivo.model_dump()
-    agregar_dispositivo(nuevo)
+    nuevo_dispositivo = agregar_dispositivo(dispositivo)
 
     return {
         "mensaje": "Dispositivo agregado correctamente",
-        "dispositivo": nuevo
+        "dispositivo": nuevo_dispositivo
     }
 
 
 @app.put("/dispositivos/{ip}")
 def modificar_dispositivo(ip: str, dispositivo: Dispositivo):
-    actualizado = actualizar_dispositivo(ip, dispositivo.model_dump())
+    actualizado = actualizar_dispositivo(ip, dispositivo)
 
-    if actualizado is None:
-        raise HTTPException(status_code=404, detail="Dispositivo no encontrado")
+    if not actualizado:
+        raise HTTPException(
+            status_code=404,
+            detail="Dispositivo no encontrado"
+        )
 
     return {
         "mensaje": "Dispositivo actualizado correctamente",
@@ -74,26 +93,41 @@ def borrar_dispositivo(ip: str):
     eliminado = eliminar_dispositivo(ip)
 
     if not eliminado:
-        raise HTTPException(status_code=404, detail="Dispositivo no encontrado")
+        raise HTTPException(
+            status_code=404,
+            detail="Dispositivo no encontrado"
+        )
 
-    return {"mensaje": "Dispositivo eliminado correctamente"}
+    return {
+        "mensaje": "Dispositivo eliminado correctamente"
+    }
 
 
 @app.post("/escanear")
 def escanear(red: str):
     resultado = escanear_red(red)
 
+    dispositivos_agregados = []
+
     for dispositivo in resultado:
         existente = buscar_dispositivo(dispositivo["ip"])
 
         if not existente:
-            agregar_dispositivo(dispositivo)
+            nuevo_dispositivo = Dispositivo(**dispositivo)
+            agregado = agregar_dispositivo(nuevo_dispositivo)
+            dispositivos_agregados.append(agregado)
 
     return {
         "red": red,
         "equipos_detectados": len(resultado),
+        "equipos_agregados": len(dispositivos_agregados),
         "dispositivos": resultado
     }
+
+
+@app.get("/historial")
+def obtener_historial():
+    return listar_historial()
 
 
 @app.get("/exportar")
@@ -106,7 +140,11 @@ def exportar():
 
     return {
         "mensaje": "Inventario exportado correctamente",
-        "formatos": ["JSON", "YAML", "XML"],
+        "formatos": [
+            "JSON",
+            "YAML",
+            "XML"
+        ],
         "archivos": [
             "data/inventario.json",
             "data/inventario.yaml",
@@ -134,7 +172,10 @@ def comando_equipo_red(datos: ComandoRed):
         }
 
     except Exception as error:
-        raise HTTPException(status_code=500, detail=str(error))
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
 
 
 @app.post("/linux/comando")
@@ -154,4 +195,7 @@ def comando_linux(datos: ComandoLinux):
         }
 
     except Exception as error:
-        raise HTTPException(status_code=500, detail=str(error))
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
