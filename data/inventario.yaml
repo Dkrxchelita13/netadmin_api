@@ -10,9 +10,3 @@
   tipo: PC
   sistema: Windows
   estado: activo
-- ip: 192.168.163.90
-  hostname: pc-token
-  mac: AA:BB:CC:DD:EE:90
-  tipo: PC
-  sistema: Windows
-  estado: activo

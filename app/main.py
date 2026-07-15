@@ -1,31 +1,31 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import Depends, FastAPI, HTTPException
 
-from app.modelos import (
-    Dispositivo,
-    ComandoRed,
-    ComandoLinux,
-    UsuarioRegistro,
-    UsuarioLogin
-)
-from app.inventario import (
-    agregar_dispositivo,
-    listar_dispositivos,
-    buscar_dispositivo,
-    actualizar_dispositivo,
-    eliminar_dispositivo,
-    listar_historial
-)
-from app.escaner import escanear_red
-from app.exportador import exportar_json, exportar_yaml, exportar_xml
-from app.netmiko_admin import ejecutar_comando_red
-from app.paramiko_admin import ejecutar_comando_linux
-from app.database import init_db
 from app.auth import (
     crear_usuario,
     iniciar_sesion,
     obtener_usuario_actual,
     requiere_admin
 )
+from app.database import init_db
+from app.escaner import escanear_red
+from app.exportador import exportar_json, exportar_xml, exportar_yaml
+from app.inventario import (
+    actualizar_dispositivo,
+    agregar_dispositivo,
+    buscar_dispositivo,
+    eliminar_dispositivo,
+    listar_dispositivos,
+    listar_historial
+)
+from app.modelos import (
+    ComandoLinux,
+    ComandoRed,
+    Dispositivo,
+    UsuarioLogin,
+    UsuarioRegistro
+)
+from app.netmiko_admin import ejecutar_comando_red
+from app.paramiko_admin import ejecutar_comando_linux
 
 
 app = FastAPI(
@@ -97,7 +97,7 @@ def obtener_dispositivo(
 ):
     dispositivo = buscar_dispositivo(ip)
 
-    if not dispositivo:
+    if dispositivo is None:
         raise HTTPException(
             status_code=404,
             detail="Dispositivo no encontrado"
@@ -133,7 +133,10 @@ def modificar_dispositivo(
     dispositivo: Dispositivo,
     usuario_actual: dict = Depends(requiere_admin)
 ):
-    actualizado = actualizar_dispositivo(ip, dispositivo)
+    actualizado = actualizar_dispositivo(
+        ip,
+        dispositivo
+    )
 
     if not actualizado:
         raise HTTPException(
@@ -175,16 +178,30 @@ def escanear(
     usuario_actual: dict = Depends(requiere_admin)
 ):
     resultado = escanear_red(red)
+    dispositivos_agregados = []
 
     for dispositivo in resultado:
-        existente = buscar_dispositivo(dispositivo["ip"])
+        existente = buscar_dispositivo(
+            dispositivo["ip"]
+        )
 
         if not existente:
-            agregar_dispositivo(dispositivo)
+            nuevo_dispositivo = Dispositivo(
+                **dispositivo
+            )
+
+            agregado = agregar_dispositivo(
+                nuevo_dispositivo
+            )
+
+            dispositivos_agregados.append(
+                agregado
+            )
 
     return {
         "red": red,
         "equipos_detectados": len(resultado),
+        "equipos_agregados": len(dispositivos_agregados),
         "dispositivos": resultado
     }
 
@@ -212,11 +229,17 @@ def exportar(
 
     exportar_json(datos)
     exportar_yaml(datos)
-    exportar_xml({"dispositivos": datos})
+    exportar_xml({
+        "dispositivos": datos
+    })
 
     return {
         "mensaje": "Inventario exportado correctamente",
-        "formatos": ["JSON", "YAML", "XML"],
+        "formatos": [
+            "JSON",
+            "YAML",
+            "XML"
+        ],
         "archivos": [
             "data/inventario.json",
             "data/inventario.yaml",
