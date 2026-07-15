@@ -22,11 +22,19 @@ from app.modelos import (
     ComandoRed,
     Dispositivo,
     UsuarioLogin,
-    UsuarioRegistro
+    UsuarioRegistro,
+    ConfiguracionEscaneoAutomatico
 )
 from app.netmiko_admin import ejecutar_comando_red
 from app.paramiko_admin import ejecutar_comando_linux
 
+from app.escaneo_automatico import (
+    configurar_escaneo_automatico,
+    obtener_configuracion_escaneo,
+    ejecutar_escaneo_automatico,
+    listar_historial_escaneos,
+    iniciar_scheduler
+)
 
 app = FastAPI(
     title="NetAdmin API",
@@ -38,6 +46,7 @@ app = FastAPI(
 @app.on_event("startup")
 def iniciar_base_datos():
     init_db()
+    iniciar_scheduler()
 
 
 @app.get("/")
@@ -220,6 +229,47 @@ def obtener_historial(
 # =========================================================
 # EXPORTACIÓN
 # =========================================================
+
+
+@app.post("/escaneo/automatico/configurar")
+def configurar_escaneo(
+    configuracion: ConfiguracionEscaneoAutomatico,
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    try:
+        return configurar_escaneo_automatico(
+            red=configuracion.red,
+            intervalo_minutos=configuracion.intervalo_minutos,
+            activo=configuracion.activo
+        )
+
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+
+@app.get("/escaneo/automatico/estado")
+def estado_escaneo_automatico(
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
+    return obtener_configuracion_escaneo()
+
+
+@app.post("/escaneo/automatico/ejecutar")
+def ejecutar_escaneo_manual_automatico(
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    try:
+        return ejecutar_escaneo_automatico()
+
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.get("/escaneo/automatico/historial")
+def historial_escaneo_automatico(
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    return listar_historial_escaneos()
 
 @app.get("/exportar")
 def exportar(
