@@ -27,12 +27,14 @@ from app.modelos import (
 from app.netmiko_admin import ejecutar_comando_red
 from app.paramiko_admin import ejecutar_comando_linux
 
+from app.dashboard import router as dashboard_router
 
 app = FastAPI(
     title="NetAdmin API",
     description="Sistema automatizado de inventario y administración de red",
     version="2.0"
 )
+app.include_router(dashboard_router)
 
 
 @app.on_event("startup")

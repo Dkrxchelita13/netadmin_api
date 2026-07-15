@@ -1,12 +1,12 @@
-- ip: 10.0.0.1
-  hostname: router-test
-  mac: 00:AA:BB:CC:DD:EE
+- ip: 192.168.163.1
+  hostname: tzinacan
+  mac: pendiente
   tipo: router
-  sistema: Cisco IOS
+  sistema: desconocido
   estado: activo
-- ip: 192.168.163.80
-  hostname: pc-sqlite
-  mac: AA:BB:CC:DD:EE:80
-  tipo: PC
-  sistema: Windows
+- ip: 192.168.163.128
+  hostname: desconocido
+  mac: pendiente
+  tipo: desconocido
+  sistema: desconocido
   estado: activo
