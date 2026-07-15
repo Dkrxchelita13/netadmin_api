@@ -25,3 +25,12 @@ class ComandoLinux(BaseModel):
     username: str
     password: str
     comando: str
+class UsuarioRegistro(BaseModel):
+    username: str
+    password: str
+    rol: str = "consulta"
+
+
+class UsuarioLogin(BaseModel):
+    username: str
+    password: str

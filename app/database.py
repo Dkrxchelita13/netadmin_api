@@ -8,9 +8,14 @@ DB_PATH = DATA_DIR / "netadmin.db"
 
 
 def get_connection():
-    DATA_DIR.mkdir(exist_ok=True)
-    connection = sqlite3.connect(DB_PATH)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    connection = sqlite3.connect(
+        DB_PATH,
+        timeout=30
+    )
     connection.row_factory = sqlite3.Row
+
     return connection
 
 
@@ -38,6 +43,19 @@ def init_db():
                 datos_anteriores TEXT,
                 datos_nuevos TEXT,
                 fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                rol TEXT NOT NULL DEFAULT 'consulta',
+                token TEXT UNIQUE
             )
             """
         )

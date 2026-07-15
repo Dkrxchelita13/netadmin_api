@@ -1,19 +1,31 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 
-from app.modelos import Dispositivo, ComandoRed, ComandoLinux
+from app.auth import (
+    crear_usuario,
+    iniciar_sesion,
+    obtener_usuario_actual,
+    requiere_admin
+)
+from app.database import init_db
+from app.escaner import escanear_red
+from app.exportador import exportar_json, exportar_xml, exportar_yaml
 from app.inventario import (
-    agregar_dispositivo,
-    listar_dispositivos,
-    buscar_dispositivo,
     actualizar_dispositivo,
+    agregar_dispositivo,
+    buscar_dispositivo,
     eliminar_dispositivo,
+    listar_dispositivos,
     listar_historial
 )
-from app.escaner import escanear_red
-from app.exportador import exportar_json, exportar_yaml, exportar_xml
+from app.modelos import (
+    ComandoLinux,
+    ComandoRed,
+    Dispositivo,
+    UsuarioLogin,
+    UsuarioRegistro
+)
 from app.netmiko_admin import ejecutar_comando_red
 from app.paramiko_admin import ejecutar_comando_linux
-from app.database import init_db
 
 
 app = FastAPI(
@@ -36,13 +48,53 @@ def inicio():
     }
 
 
+# =========================================================
+# AUTENTICACIÓN
+# =========================================================
+
+@app.post("/auth/register", status_code=201)
+def registrar_usuario(usuario: UsuarioRegistro):
+    return crear_usuario(
+        username=usuario.username,
+        password=usuario.password,
+        rol=usuario.rol
+    )
+
+
+@app.post("/auth/login")
+def login(usuario: UsuarioLogin):
+    return iniciar_sesion(
+        username=usuario.username,
+        password=usuario.password
+    )
+
+
+@app.get("/auth/me")
+def obtener_mi_usuario(
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
+    return {
+        "username": usuario_actual["username"],
+        "rol": usuario_actual["rol"]
+    }
+
+
+# =========================================================
+# INVENTARIO
+# =========================================================
+
 @app.get("/dispositivos")
-def obtener_dispositivos():
+def obtener_dispositivos(
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
     return listar_dispositivos()
 
 
 @app.get("/dispositivos/{ip}")
-def obtener_dispositivo(ip: str):
+def obtener_dispositivo(
+    ip: str,
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
     dispositivo = buscar_dispositivo(ip)
 
     if dispositivo is None:
@@ -55,7 +107,10 @@ def obtener_dispositivo(ip: str):
 
 
 @app.post("/dispositivos", status_code=201)
-def crear_dispositivo(dispositivo: Dispositivo):
+def crear_dispositivo(
+    dispositivo: Dispositivo,
+    usuario_actual: dict = Depends(requiere_admin)
+):
     existente = buscar_dispositivo(dispositivo.ip)
 
     if existente:
@@ -73,8 +128,15 @@ def crear_dispositivo(dispositivo: Dispositivo):
 
 
 @app.put("/dispositivos/{ip}")
-def modificar_dispositivo(ip: str, dispositivo: Dispositivo):
-    actualizado = actualizar_dispositivo(ip, dispositivo)
+def modificar_dispositivo(
+    ip: str,
+    dispositivo: Dispositivo,
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    actualizado = actualizar_dispositivo(
+        ip,
+        dispositivo
+    )
 
     if not actualizado:
         raise HTTPException(
@@ -89,7 +151,10 @@ def modificar_dispositivo(ip: str, dispositivo: Dispositivo):
 
 
 @app.delete("/dispositivos/{ip}")
-def borrar_dispositivo(ip: str):
+def borrar_dispositivo(
+    ip: str,
+    usuario_actual: dict = Depends(requiere_admin)
+):
     eliminado = eliminar_dispositivo(ip)
 
     if not eliminado:
@@ -103,19 +168,35 @@ def borrar_dispositivo(ip: str):
     }
 
 
-@app.post("/escanear")
-def escanear(red: str):
-    resultado = escanear_red(red)
+# =========================================================
+# ESCANEO
+# =========================================================
 
+@app.post("/escanear")
+def escanear(
+    red: str,
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    resultado = escanear_red(red)
     dispositivos_agregados = []
 
     for dispositivo in resultado:
-        existente = buscar_dispositivo(dispositivo["ip"])
+        existente = buscar_dispositivo(
+            dispositivo["ip"]
+        )
 
         if not existente:
-            nuevo_dispositivo = Dispositivo(**dispositivo)
-            agregado = agregar_dispositivo(nuevo_dispositivo)
-            dispositivos_agregados.append(agregado)
+            nuevo_dispositivo = Dispositivo(
+                **dispositivo
+            )
+
+            agregado = agregar_dispositivo(
+                nuevo_dispositivo
+            )
+
+            dispositivos_agregados.append(
+                agregado
+            )
 
     return {
         "red": red,
@@ -125,18 +206,32 @@ def escanear(red: str):
     }
 
 
+# =========================================================
+# HISTORIAL
+# =========================================================
+
 @app.get("/historial")
-def obtener_historial():
+def obtener_historial(
+    usuario_actual: dict = Depends(requiere_admin)
+):
     return listar_historial()
 
 
+# =========================================================
+# EXPORTACIÓN
+# =========================================================
+
 @app.get("/exportar")
-def exportar():
+def exportar(
+    usuario_actual: dict = Depends(requiere_admin)
+):
     datos = listar_dispositivos()
 
     exportar_json(datos)
     exportar_yaml(datos)
-    exportar_xml({"dispositivos": datos})
+    exportar_xml({
+        "dispositivos": datos
+    })
 
     return {
         "mensaje": "Inventario exportado correctamente",
@@ -153,8 +248,15 @@ def exportar():
     }
 
 
+# =========================================================
+# ADMINISTRACIÓN DE EQUIPOS DE RED
+# =========================================================
+
 @app.post("/red/comando")
-def comando_equipo_red(datos: ComandoRed):
+def comando_red(
+    datos: ComandoRed,
+    usuario_actual: dict = Depends(requiere_admin)
+):
     try:
         salida = ejecutar_comando_red(
             datos.ip,
@@ -178,8 +280,15 @@ def comando_equipo_red(datos: ComandoRed):
         )
 
 
+# =========================================================
+# ADMINISTRACIÓN DE EQUIPOS LINUX
+# =========================================================
+
 @app.post("/linux/comando")
-def comando_linux(datos: ComandoLinux):
+def comando_linux(
+    datos: ComandoLinux,
+    usuario_actual: dict = Depends(requiere_admin)
+):
     try:
         salida = ejecutar_comando_linux(
             datos.ip,

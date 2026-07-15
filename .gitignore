@@ -13,3 +13,8 @@ Thumbs.db
 
 # Archivos temporales
 *.log
+
+# Base de datos SQLite local
+data/*.db
+data/*.db-shm
+data/*.db-wal
