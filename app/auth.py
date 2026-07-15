@@ -2,15 +2,21 @@ import hashlib
 import secrets
 import sqlite3
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.database import get_connection
 
 
 ROLES_VALIDOS = {"admin", "consulta"}
 
+seguridad_bearer = HTTPBearer(auto_error=False)
 
-def generar_hash_password(password: str, salt: str | None = None):
+
+def generar_hash_password(
+    password: str,
+    salt: str | None = None
+):
     if salt is None:
         salt = secrets.token_hex(16)
 
@@ -24,12 +30,41 @@ def generar_hash_password(password: str, salt: str | None = None):
     return salt, password_hash
 
 
-def verificar_password(password: str, salt: str, password_hash: str) -> bool:
-    _, hash_calculado = generar_hash_password(password, salt)
-    return secrets.compare_digest(hash_calculado, password_hash)
+def verificar_password(
+    password: str,
+    salt: str,
+    password_hash: str
+) -> bool:
+    _, hash_calculado = generar_hash_password(
+        password,
+        salt
+    )
+
+    return secrets.compare_digest(
+        hash_calculado,
+        password_hash
+    )
 
 
-def crear_usuario(username: str, password: str, rol: str = "consulta"):
+def crear_usuario(
+    username: str,
+    password: str,
+    rol: str = "consulta"
+):
+    username = username.strip()
+
+    if not username:
+        raise HTTPException(
+            status_code=400,
+            detail="El nombre de usuario es obligatorio"
+        )
+
+    if not password:
+        raise HTTPException(
+            status_code=400,
+            detail="La contraseña es obligatoria"
+        )
+
     if rol not in ROLES_VALIDOS:
         raise HTTPException(
             status_code=400,
@@ -52,8 +87,15 @@ def crear_usuario(username: str, password: str, rol: str = "consulta"):
                 )
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (username, password_hash, salt, rol, token),
+                (
+                    username,
+                    password_hash,
+                    salt,
+                    rol,
+                    token
+                )
             )
+
             connection.commit()
 
     except sqlite3.IntegrityError:
@@ -71,29 +113,45 @@ def crear_usuario(username: str, password: str, rol: str = "consulta"):
     }
 
 
-def iniciar_sesion(username: str, password: str):
+def iniciar_sesion(
+    username: str,
+    password: str
+):
     with get_connection() as connection:
         usuario = connection.execute(
             """
-            SELECT id, username, password_hash, salt, rol
+            SELECT
+                id,
+                username,
+                password_hash,
+                salt,
+                rol
             FROM usuarios
             WHERE username = ?
             """,
-            (username,),
+            (username,)
         ).fetchone()
 
     if not usuario:
         raise HTTPException(
-            status_code=401,
-            detail="Credenciales inválidas"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas",
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
     usuario = dict(usuario)
 
-    if not verificar_password(password, usuario["salt"], usuario["password_hash"]):
+    password_correcta = verificar_password(
+        password,
+        usuario["salt"],
+        usuario["password_hash"]
+    )
+
+    if not password_correcta:
         raise HTTPException(
-            status_code=401,
-            detail="Credenciales inválidas"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas",
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
     nuevo_token = secrets.token_urlsafe(32)
@@ -105,8 +163,12 @@ def iniciar_sesion(username: str, password: str):
             SET token = ?
             WHERE id = ?
             """,
-            (nuevo_token, usuario["id"]),
+            (
+                nuevo_token,
+                usuario["id"]
+            )
         )
+
         connection.commit()
 
     return {
@@ -118,44 +180,63 @@ def iniciar_sesion(username: str, password: str):
     }
 
 
-def obtener_usuario_actual(authorization: str | None = Header(default=None)):
-    if not authorization:
+def obtener_usuario_actual(
+    credenciales: HTTPAuthorizationCredentials | None = Depends(
+        seguridad_bearer
+    )
+):
+    if credenciales is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token requerido",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
-    if not authorization.lower().startswith("bearer "):
+    if credenciales.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Formato de token inválido",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
-    token = authorization.split(" ", 1)[1].strip()
+    token = credenciales.credentials
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token requerido",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
     with get_connection() as connection:
         usuario = connection.execute(
             """
-            SELECT id, username, rol, token
+            SELECT
+                id,
+                username,
+                rol,
+                token
             FROM usuarios
             WHERE token = ?
             """,
-            (token,),
+            (token,)
         ).fetchone()
 
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido o expirado",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
     return dict(usuario)
 
 
-def requiere_admin(usuario_actual: dict = Depends(obtener_usuario_actual)):
+def requiere_admin(
+    usuario_actual: dict = Depends(
+        obtener_usuario_actual
+    )
+):
     if usuario_actual["rol"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
