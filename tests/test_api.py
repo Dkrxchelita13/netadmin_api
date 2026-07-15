@@ -306,3 +306,49 @@ def test_comando_red_simulado(
     assert response.status_code == 200
     assert response.json()["ip"] == "192.168.163.10"
     assert "GigabitEthernet0/0" in response.json()["salida"]
+def test_configurar_escaneo_automatico_con_token_admin(
+    client,
+    admin_headers
+):
+    response = client.post(
+        "/escaneo/automatico/configurar",
+        json={
+            "red": "192.168.163.0/28",
+            "intervalo_minutos": 5,
+            "activo": False
+        },
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["configuracion"]["red"]
+        == "192.168.163.0/28"
+    )
+
+
+def test_estado_escaneo_automatico_con_token(
+    client,
+    admin_headers
+):
+    response = client.get(
+        "/escaneo/automatico/estado",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert "red" in response.json()
+
+
+def test_historial_escaneo_automatico_con_token_admin(
+    client,
+    admin_headers
+):
+    response = client.get(
+        "/escaneo/automatico/historial",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+    

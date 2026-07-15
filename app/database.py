@@ -58,6 +58,46 @@ def init_db():
                 token TEXT UNIQUE
             )
             """
+            
+            
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS configuracion_escaneo (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                red TEXT NOT NULL,
+                intervalo_minutos INTEGER NOT NULL,
+                activo INTEGER NOT NULL DEFAULT 0,
+                ultima_ejecucion TEXT,
+                proxima_ejecucion TEXT
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS historial_escaneos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                red TEXT NOT NULL,
+                equipos_detectados INTEGER NOT NULL,
+                nuevos_agregados INTEGER NOT NULL,
+                estado TEXT NOT NULL,
+                detalle TEXT,
+                fecha TEXT NOT NULL
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO configuracion_escaneo (
+                id,
+                red,
+                intervalo_minutos,
+                activo
+            )
+            VALUES (1, '192.168.163.0/28', 30, 0)
+            """
         )
 
         connection.commit()
