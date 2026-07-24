@@ -53,7 +53,35 @@ line vty 0 4
 !
 end
 """
-
+    if comando in ["show running-config actualizado", "show running-config v2"]:
+        return """
+hostname SW-NETADMIN-CORE
+!
+vlan 10
+ name Administracion
+!
+vlan 20
+ name Usuarios
+!
+vlan 30
+ name Invitados
+!
+interface vlan 1
+ ip address 192.168.163.10 255.255.255.0
+ no shutdown
+!
+interface vlan 10
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+!
+username admin privilege 15 secret ********
+!
+line vty 0 4
+ login local
+ transport input ssh
+!
+end
+"""
     return f"Comando simulado no reconocido: {comando}"
 
 

@@ -1173,6 +1173,14 @@ def mostrar_dashboard():
             </button>
             <button
                 class="nav-button admin-only"
+                data-view="comparacion"
+                onclick="cambiarVista('comparacion', this)"
+            >
+                <span class="nav-icon">⇄</span>
+                <span>Comparación</span>
+            </button>
+            <button
+                class="nav-button admin-only"
                 data-view="exportacion"
                 onclick="cambiarVista('exportacion', this)"
             >
@@ -1663,6 +1671,113 @@ def mostrar_dashboard():
                 </article>
 
             </section>
+            
+            <!-- =============================================
+                VISTA: COMPARACIÓN DE CONFIGURACIONES
+            ============================================== -->
+
+            <section id="view-comparacion" class="view">
+
+                <div class="page-heading">
+
+                    <div>
+                        <h2>Comparación de configuraciones</h2>
+                        <p>
+                            Consulta las diferencias entre las dos configuraciones
+                            más recientes de un dispositivo.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <article class="card">
+
+                    <div class="card-header">
+                        <div>
+                            <h3>Seleccionar dispositivo</h3>
+                            <p>
+                                Introduce la dirección IP del equipo que deseas comparar.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="toolbar">
+
+                            <div class="search-box">
+                                <span class="search-symbol">⌕</span>
+
+                                <input
+                                    type="text"
+                                    id="ipComparacion"
+                                    value="192.168.163.10"
+                                    placeholder="IP del dispositivo"
+                                    onkeydown="
+                                        if (event.key === 'Enter') {
+                                            compararConfiguracion();
+                                        }
+                                    "
+                                >
+                            </div>
+
+                            <button
+                                id="compararButton"
+                                class="btn btn-primary"
+                                onclick="compararConfiguracion()"
+                            >
+                                Comparar configuración
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            id="resultadoComparacionContenedor"
+                            style="
+                                margin-top: 20px;
+                                border: 1px solid var(--border);
+                                border-radius: 12px;
+                                overflow: hidden;
+                                background: #0f172a;
+                            "
+                        >
+                            <div
+                                style="
+                                    padding: 12px 16px;
+                                    border-bottom: 1px solid #334155;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    color: #cbd5e1;
+                                "
+                            >
+                                Resultado de la comparación
+                            </div>
+
+                            <pre
+                                id="resultadoComparacion"
+                                style="
+                                    min-height: 280px;
+                                    max-height: 520px;
+                                    margin: 0;
+                                    padding: 20px;
+                                    overflow: auto;
+                                    white-space: pre-wrap;
+                                    word-break: break-word;
+                                    font-family: Consolas, Monaco, monospace;
+                                    font-size: 13px;
+                                    line-height: 1.6;
+                                    color: #e2e8f0;
+                                "
+                            >Sin comparación cargada.</pre>
+                        </div>
+
+                    </div>
+
+                </article>
+
+            </section>
             <!-- =============================================
                  VISTA: EXPORTACIÓN
             ============================================== -->
@@ -2055,14 +2170,6 @@ def mostrar_dashboard():
     }
 
 
-    function cambiarVistaPorNombre(nombre) {
-        const boton = document.querySelector(
-            '.nav-button[data-view="' + nombre + '"]'
-        );
-
-        cambiarVista(nombre, boton);
-    }
-
 
     function cambiarVistaPorNombre(nombre) {
         const boton = document.querySelector(
@@ -2094,6 +2201,11 @@ def mostrar_dashboard():
                 titulo: "Auditoría del sistema",
                 subtitulo:
                     "Supervisión de eventos y operaciones realizadas"
+            },
+            comparacion: {
+                titulo: "Comparación de configuraciones",
+                subtitulo:
+                    "Detección de cambios entre versiones almacenadas"
             },
             exportacion: {
                 titulo: "Exportación",
@@ -2560,6 +2672,68 @@ def mostrar_dashboard():
                 </tr>
             `;
         });
+    }
+    async function compararConfiguracion() {
+        ocultarAlerta("globalAlert");
+
+        const entradaIp = document.getElementById("ipComparacion");
+        const resultado = document.getElementById(
+            "resultadoComparacion"
+        );
+        const boton = document.getElementById("compararButton");
+
+        const ip = entradaIp.value.trim();
+
+        if (!ip) {
+            mostrarAlerta(
+                "globalAlert",
+                "Ingresa la dirección IP del dispositivo.",
+                "error"
+            );
+
+            entradaIp.focus();
+            return;
+        }
+
+        boton.disabled = true;
+        boton.textContent = "Comparando...";
+        resultado.textContent = "Consultando configuraciones...";
+
+        try {
+            const data = await solicitarConToken(
+                "/configuracion/" +
+                encodeURIComponent(ip) +
+                "/comparar"
+            );
+
+            resultado.textContent = JSON.stringify(
+                data,
+                null,
+                2
+            );
+
+            mostrarAlerta(
+                "globalAlert",
+                "Comparación cargada correctamente.",
+                "success"
+            );
+
+
+        } catch (error) {
+            resultado.textContent = `No fue posible realizar la comparación.
+
+        ${error.message}`;
+
+            mostrarAlerta(
+                "globalAlert",
+                error.message,
+                "error"
+            );
+
+        } finally {
+            boton.disabled = false;
+            boton.textContent = "Comparar configuración";
+        }
     }
     async function exportarInventario() {
         ocultarAlerta("globalAlert");

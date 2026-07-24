@@ -116,5 +116,18 @@ def init_db():
             )
             """
         )        
-
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS configuraciones_dispositivos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT NOT NULL,
+                comando TEXT NOT NULL,
+                configuracion TEXT NOT NULL,
+                hash_sha256 TEXT NOT NULL,
+                usuario TEXT,
+                rol TEXT,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
         connection.commit()

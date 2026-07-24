@@ -378,3 +378,65 @@ def test_auditoria_requiere_admin(
         response.json()["detail"]
         == "No tienes permisos suficientes"
     )
+def test_capturar_configuracion_con_token_admin(
+    client,
+    admin_headers
+):
+
+    response = client.post(
+        "/configuracion/capturar",
+        json={
+            "ip": "192.168.163.10",
+            "username": "admin",
+            "password": "cisco",
+            "secret": "class",
+            "device_type": "simulador_cisco",
+            "comando": "show running-config"
+        },
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert "registro" in response.json()
+    assert "hash_sha256" in response.json()["registro"]
+
+
+def test_comparar_configuracion_con_token_admin(
+    client,
+    admin_headers
+):
+
+    client.post(
+        "/configuracion/capturar",
+        json={
+            "ip": "192.168.163.10",
+            "username": "admin",
+            "password": "cisco",
+            "secret": "class",
+            "device_type": "simulador_cisco",
+            "comando": "show running-config"
+        },
+        headers=admin_headers
+    )
+
+    client.post(
+        "/configuracion/capturar",
+        json={
+            "ip": "192.168.163.10",
+            "username": "admin",
+            "password": "cisco",
+            "secret": "class",
+            "device_type": "simulador_cisco",
+            "comando": "show running-config actualizado"
+        },
+        headers=admin_headers
+    )
+
+    response = client.get(
+        "/configuracion/192.168.163.10/comparar",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert "hay_cambios" in response.json()
+    assert "diff" in response.json()

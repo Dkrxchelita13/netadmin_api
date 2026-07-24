@@ -38,3 +38,10 @@ class ConfiguracionEscaneoAutomatico(BaseModel):
     red: str = "192.168.163.0/28"
     intervalo_minutos: int = 30
     activo: bool = True
+class CapturaConfiguracion(BaseModel):
+    ip: str
+    username: str
+    password: str
+    secret: Optional[str] = ""
+    device_type: str = "simulador_cisco"
+    comando: str = "show running-config"

@@ -36,17 +36,23 @@ from app.inventario import (
     listar_dispositivos,
     listar_historial
 )
+
 from app.modelos import (
-    ComandoLinux,
-    ComandoRed,
-    ConfiguracionEscaneoAutomatico,
     Dispositivo,
+    ComandoRed,
+    ComandoLinux,
+    UsuarioRegistro,
     UsuarioLogin,
-    UsuarioRegistro
+    ConfiguracionEscaneoAutomatico,
+    CapturaConfiguracion
 )
 from app.netmiko_admin import ejecutar_comando_red
 from app.paramiko_admin import ejecutar_comando_linux
-
+from app.config_comparador import (
+    guardar_configuracion,
+    listar_configuraciones_por_ip,
+    comparar_ultimas_configuraciones
+)
 
 # =========================================================
 # INICIO Y CIERRE DE LA APLICACIÓN
@@ -645,3 +651,105 @@ def comando_linux(
             status_code=500,
             detail=str(error)
         )
+@app.post("/configuracion/capturar")
+def capturar_configuracion_dispositivo(
+    datos: CapturaConfiguracion,
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    try:
+        salida = ejecutar_comando_red(
+            datos.ip,
+            datos.username,
+            datos.password,
+            datos.secret,
+            datos.device_type,
+            datos.comando
+        )
+
+        registro = guardar_configuracion(
+            ip=datos.ip,
+            comando=datos.comando,
+            configuracion=salida,
+            usuario=usuario_actual["username"],
+            rol=usuario_actual["rol"]
+        )
+
+        registrar_evento_auditoria(
+            usuario=usuario_actual["username"],
+            rol=usuario_actual["rol"],
+            modulo="configuracion",
+            accion="CAPTURAR_CONFIGURACION",
+            ip=datos.ip,
+            descripcion=f"Configuración capturada con comando: {datos.comando}",
+            datos_nuevos={
+                "id": registro["id"],
+                "hash_sha256": registro["hash_sha256"],
+                "comando": registro["comando"]
+            },
+            resultado="OK"
+        )
+
+        return {
+            "mensaje": "Configuración capturada correctamente",
+            "registro": {
+                "id": registro["id"],
+                "ip": registro["ip"],
+                "comando": registro["comando"],
+                "hash_sha256": registro["hash_sha256"],
+                "usuario": registro["usuario"],
+                "rol": registro["rol"],
+                "fecha": registro["fecha"]
+            }
+        }
+
+    except Exception as error:
+        registrar_evento_auditoria(
+            usuario=usuario_actual["username"],
+            rol=usuario_actual["rol"],
+            modulo="configuracion",
+            accion="CAPTURAR_CONFIGURACION",
+            ip=datos.ip,
+            descripcion=str(error),
+            resultado="ERROR"
+        )
+
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.get("/configuracion/{ip}/historial")
+def historial_configuraciones_dispositivo(
+    ip: str,
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    return listar_configuraciones_por_ip(ip)
+
+
+@app.get("/configuracion/{ip}/comparar")
+def comparar_configuracion_dispositivo(
+    ip: str,
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    resultado = comparar_ultimas_configuraciones(ip)
+
+    if not resultado:
+        raise HTTPException(
+            status_code=400,
+            detail="Se requieren al menos dos configuraciones guardadas para comparar"
+        )
+
+    registrar_evento_auditoria(
+        usuario=usuario_actual["username"],
+        rol=usuario_actual["rol"],
+        modulo="configuracion",
+        accion="COMPARAR_CONFIGURACION",
+        ip=ip,
+        descripcion="Comparación de configuración actual contra configuración anterior",
+        datos_nuevos={
+            "configuracion_anterior": resultado["configuracion_anterior"],
+            "configuracion_actual": resultado["configuracion_actual"],
+            "hay_cambios": resultado["hay_cambios"]
+        },
+        resultado="OK"
+    )
+
+    return resultado
