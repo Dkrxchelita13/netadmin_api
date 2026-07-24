@@ -351,4 +351,45 @@ def test_historial_escaneo_automatico_con_token_admin(
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
-    
+def test_auditoria_con_token_admin(
+    client,
+    admin_headers
+):
+    response = client.get(
+        "/auditoria",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+def test_auditoria_requiere_admin(
+    client,
+    consulta_headers
+):
+    response = client.get(
+        "/auditoria",
+        headers=consulta_headers
+    )
+
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "No tienes permisos suficientes"
+    )
+def test_generar_reporte_pdf_con_token_admin(
+    client,
+    admin_headers
+):
+    response = client.get(
+        "/reporte/pdf",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "application/pdf"
+    )
+
+    assert response.content.startswith(b"%PDF")
