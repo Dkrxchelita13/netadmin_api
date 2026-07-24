@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from app.auth import (
     crear_usuario,
@@ -47,7 +48,7 @@ from app.modelos import (
 from app.netmiko_admin import ejecutar_comando_red
 from app.paramiko_admin import ejecutar_comando_linux
 
-
+from app.reportes_pdf import generar_reporte_pdf
 # =========================================================
 # INICIO Y CIERRE DE LA APLICACIÓN
 # =========================================================
@@ -464,7 +465,40 @@ def obtener_auditoria_por_ip(
 ):
     return listar_auditoria_por_ip(ip)
 
+@app.get("/reporte/pdf")
+def descargar_reporte_pdf(usuario_actual: dict = Depends(requiere_admin)):
+    try:
+        ruta_pdf = generar_reporte_pdf()
 
+        registrar_evento_auditoria(
+            usuario=usuario_actual["username"],
+            rol=usuario_actual["rol"],
+            modulo="reportes",
+            accion="GENERAR_PDF",
+            descripcion="Reporte PDF generado automaticamente desde la API",
+            datos_nuevos={
+                "archivo": ruta_pdf
+            },
+            resultado="OK"
+        )
+
+        return FileResponse(
+            path=ruta_pdf,
+            media_type="application/pdf",
+            filename="reporte_netadmin.pdf"
+        )
+
+    except Exception as error:
+        registrar_evento_auditoria(
+            usuario=usuario_actual["username"],
+            rol=usuario_actual["rol"],
+            modulo="reportes",
+            accion="GENERAR_PDF",
+            descripcion=str(error),
+            resultado="ERROR"
+        )
+
+        raise HTTPException(status_code=500, detail=str(error))
 # =========================================================
 # EXPORTACIÓN
 # =========================================================
