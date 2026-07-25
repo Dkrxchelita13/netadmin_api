@@ -1851,6 +1851,14 @@ def mostrar_dashboard():
                             >
                                 Generar reporte PDF
                             </button>
+                            <button
+                                id="alertButton"
+                                class="btn btn-secondary btn-block"
+                                style="margin-top: 10px;"
+                                onclick="probarAlerta()"
+                            >
+                                Probar alerta
+                            </button>
                             
                         </div>
 
@@ -2861,6 +2869,80 @@ def mostrar_dashboard():
             boton.disabled = false;
             boton.textContent = "Generar reporte PDF";
         }
+    async function probarAlerta() {
+        ocultarAlerta("globalAlert");
+
+        const boton = document.getElementById("alertButton");
+
+        boton.disabled = true;
+        boton.textContent = "Enviando alerta...";
+
+        try {
+            const data = await solicitarConToken(
+                "/alertas/probar",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        asunto: "Prueba de alerta NetAdmin API",
+                        mensaje: (
+                            "Alerta enviada desde el dashboard web "
+                            + "de NetAdmin API."
+                        )
+                    })
+                }
+            );
+
+            const resultado = data.resultado || {};
+
+            if (resultado.alertas_activas === false) {
+                throw new Error(
+                    resultado.detalle ||
+                    "Las alertas están desactivadas."
+                );
+            }
+
+            const envios = Array.isArray(resultado.resultados)
+                ? resultado.resultados
+                : [];
+
+            const envioExitoso = envios.some(
+                elemento => elemento.enviado === true
+            );
+
+            if (!envioExitoso) {
+                const detalle = envios
+                    .map(elemento => elemento.detalle)
+                    .filter(Boolean)
+                    .join(" | ");
+
+                throw new Error(
+                    detalle ||
+                    "No se confirmó el envío de la alerta."
+                );
+            }
+
+            mostrarAlerta(
+                "globalAlert",
+                "Alerta enviada correctamente.",
+                "success"
+            );
+
+        } catch (error) {
+            mostrarAlerta(
+                "globalAlert",
+                error.message ||
+                    "Error al enviar la alerta.",
+                "error"
+            );
+
+        } finally {
+            boton.disabled = false;
+            boton.textContent = "Probar alerta";
+        }
+    }
     }
     document
         .getElementById("loginForm")

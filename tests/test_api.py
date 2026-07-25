@@ -456,7 +456,7 @@ def test_generar_reporte_pdf_con_token_admin(
     assert response.content.startswith(b"%PDF")
 
 
-def test_alerta_prueba_con_token_admin(
+def test_probar_alerta_con_token_admin(
     client,
     admin_headers,
     monkeypatch
