@@ -1843,7 +1843,15 @@ def mostrar_dashboard():
                             >
                                 Generar archivos de exportación
                             </button>
-
+                            <button
+                                id="pdfButton"
+                                class="btn btn-secondary btn-block"
+                                style="margin-top: 10px;"
+                                onclick="generarReportePDF()"
+                            >
+                                Generar reporte PDF
+                            </button>
+                            
                         </div>
 
                     </article>
@@ -2770,7 +2778,90 @@ def mostrar_dashboard():
         }
     }
 
+    async function generarReportePDF() {
+        ocultarAlerta("globalAlert");
 
+        const token = obtenerToken();
+        const boton = document.getElementById("pdfButton");
+
+        if (!token) {
+            mostrarAlerta(
+                "globalAlert",
+                "Debes iniciar sesión primero.",
+                "error"
+            );
+            return;
+        }
+
+        boton.disabled = true;
+        boton.textContent = "Generando reporte...";
+
+        try {
+            const response = await fetch("/reporte/pdf", {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            if (response.status === 401) {
+                cerrarSesion();
+                throw new Error(
+                    "La sesión ha expirado. Inicia sesión nuevamente."
+                );
+            }
+
+            if (!response.ok) {
+                let mensaje =
+                    "No fue posible generar el reporte PDF.";
+
+                try {
+                    const data = await response.json();
+
+                    if (data.detail) {
+                        mensaje = data.detail;
+                    }
+                } catch (error) {
+                    // La respuesta no contenía JSON.
+                }
+
+                throw new Error(mensaje);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const enlace = document.createElement("a");
+            enlace.href = url;
+            enlace.download = "reporte_netadmin.pdf";
+
+            document.body.appendChild(enlace);
+            enlace.click();
+            enlace.remove();
+
+            window.setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+            }, 1000);
+
+            mostrarAlerta(
+                "globalAlert",
+                "Reporte PDF generado correctamente.",
+                "success"
+            );
+
+        } catch (error) {
+            mostrarAlerta(
+                "globalAlert",
+                error.message ||
+                    "Error al generar el reporte PDF.",
+                "error"
+            );
+
+        } finally {
+            boton.disabled = false;
+            boton.textContent = "Generar reporte PDF";
+        }
+    }
     document
         .getElementById("loginForm")
         .addEventListener("submit", iniciarSesion);
