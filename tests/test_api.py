@@ -351,4 +351,162 @@ def test_historial_escaneo_automatico_con_token_admin(
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
-    
+def test_auditoria_con_token_admin(
+    client,
+    admin_headers
+):
+    response = client.get(
+        "/auditoria",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+def test_auditoria_requiere_admin(
+    client,
+    consulta_headers
+):
+    response = client.get(
+        "/auditoria",
+        headers=consulta_headers
+    )
+
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "No tienes permisos suficientes"
+    )
+def test_capturar_configuracion_con_token_admin(
+    client,
+    admin_headers
+):
+    response = client.post(
+        "/configuracion/capturar",
+        json={
+            "ip": "192.168.163.10",
+            "username": "admin",
+            "password": "cisco",
+            "secret": "class",
+            "device_type": "simulador_cisco",
+            "comando": "show running-config"
+        },
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert "registro" in response.json()
+    assert "hash_sha256" in response.json()["registro"]
+
+
+def test_comparar_configuracion_con_token_admin(
+    client,
+    admin_headers
+):
+    client.post(
+        "/configuracion/capturar",
+        json={
+            "ip": "192.168.163.10",
+            "username": "admin",
+            "password": "cisco",
+            "secret": "class",
+            "device_type": "simulador_cisco",
+            "comando": "show running-config"
+        },
+        headers=admin_headers
+    )
+
+    client.post(
+        "/configuracion/capturar",
+        json={
+            "ip": "192.168.163.10",
+            "username": "admin",
+            "password": "cisco",
+            "secret": "class",
+            "device_type": "simulador_cisco",
+            "comando": "show running-config actualizado"
+        },
+        headers=admin_headers
+    )
+
+    response = client.get(
+        "/configuracion/192.168.163.10/comparar",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert "hay_cambios" in response.json()
+    assert "diff" in response.json()
+
+
+def test_generar_reporte_pdf_con_token_admin(
+    client,
+    admin_headers
+):
+    response = client.get(
+        "/reporte/pdf",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "application/pdf"
+    )
+    assert response.content.startswith(b"%PDF")
+
+
+def test_probar_alerta_con_token_admin(
+    client,
+    admin_headers,
+    monkeypatch
+):
+    monkeypatch.setenv(
+        "ALERTAS_ACTIVAS",
+        "false"
+    )
+
+    response = client.post(
+        "/alertas/probar",
+        json={
+            "asunto": "Prueba automática",
+            "mensaje": (
+                "Prueba de alerta ejecutada "
+                "desde Pytest."
+            )
+        },
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+
+    datos = response.json()
+
+    assert (
+        datos["mensaje"]
+        == "Proceso de alerta ejecutado"
+    )
+    assert (
+        datos["resultado"]["alertas_activas"]
+        is False
+    )
+
+
+def test_alerta_prueba_requiere_admin(
+    client,
+    consulta_headers
+):
+    response = client.post(
+        "/alertas/probar",
+        json={
+            "asunto": "Prueba sin permisos",
+            "mensaje": "Esta prueba debe ser rechazada."
+        },
+        headers=consulta_headers
+    )
+
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "No tienes permisos suficientes"
+    )

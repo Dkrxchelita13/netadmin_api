@@ -99,5 +99,35 @@ def init_db():
             VALUES (1, '192.168.163.0/28', 30, 0)
             """
         )
-
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS auditoria_eventos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario TEXT,
+                rol TEXT,
+                modulo TEXT NOT NULL,
+                accion TEXT NOT NULL,
+                ip TEXT,
+                descripcion TEXT,
+                datos_anteriores TEXT,
+                datos_nuevos TEXT,
+                resultado TEXT NOT NULL,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )        
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS configuraciones_dispositivos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT NOT NULL,
+                comando TEXT NOT NULL,
+                configuracion TEXT NOT NULL,
+                hash_sha256 TEXT NOT NULL,
+                usuario TEXT,
+                rol TEXT,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
         connection.commit()

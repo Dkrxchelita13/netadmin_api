@@ -8,6 +8,14 @@
         "estado": "activo"
     },
     {
+        "ip": "192.168.163.120",
+        "hostname": "pc-auditoria-actualizada",
+        "mac": "AA:BB:CC:DD:EE:20",
+        "tipo": "PC",
+        "sistema": "Windows 11",
+        "estado": "activo"
+    },
+    {
         "ip": "192.168.163.128",
         "hostname": "desconocido",
         "mac": "pendiente",
