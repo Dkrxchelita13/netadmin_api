@@ -382,7 +382,6 @@ def test_capturar_configuracion_con_token_admin(
     client,
     admin_headers
 ):
-
     response = client.post(
         "/configuracion/capturar",
         json={
@@ -405,7 +404,6 @@ def test_comparar_configuracion_con_token_admin(
     client,
     admin_headers
 ):
-
     client.post(
         "/configuracion/capturar",
         json={
@@ -440,6 +438,8 @@ def test_comparar_configuracion_con_token_admin(
     assert response.status_code == 200
     assert "hay_cambios" in response.json()
     assert "diff" in response.json()
+
+
 def test_generar_reporte_pdf_con_token_admin(
     client,
     admin_headers
@@ -453,5 +453,60 @@ def test_generar_reporte_pdf_con_token_admin(
     assert response.headers["content-type"].startswith(
         "application/pdf"
     )
-
     assert response.content.startswith(b"%PDF")
+
+
+def test_alerta_prueba_con_token_admin(
+    client,
+    admin_headers,
+    monkeypatch
+):
+    monkeypatch.setenv(
+        "ALERTAS_ACTIVAS",
+        "false"
+    )
+
+    response = client.post(
+        "/alertas/probar",
+        json={
+            "asunto": "Prueba automática",
+            "mensaje": (
+                "Prueba de alerta ejecutada "
+                "desde Pytest."
+            )
+        },
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+
+    datos = response.json()
+
+    assert (
+        datos["mensaje"]
+        == "Proceso de alerta ejecutado"
+    )
+    assert (
+        datos["resultado"]["alertas_activas"]
+        is False
+    )
+
+
+def test_alerta_prueba_requiere_admin(
+    client,
+    consulta_headers
+):
+    response = client.post(
+        "/alertas/probar",
+        json={
+            "asunto": "Prueba sin permisos",
+            "mensaje": "Esta prueba debe ser rechazada."
+        },
+        headers=consulta_headers
+    )
+
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "No tienes permisos suficientes"
+    )

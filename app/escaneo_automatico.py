@@ -6,7 +6,7 @@ from app.database import get_connection
 from app.escaner import escanear_red
 from app.inventario import agregar_dispositivo, buscar_dispositivo
 from app.modelos import Dispositivo
-
+from app.alertas import enviar_alerta
 
 _scheduler_iniciado = False
 
@@ -153,7 +153,16 @@ def ejecutar_escaneo_automatico():
             estado="OK",
             detalle="Escaneo ejecutado correctamente"
         )
-
+        if nuevos_agregados > 0:
+            enviar_alerta(
+                asunto="NetAdmin API - Nuevos dispositivos detectados",
+                mensaje=(
+                    "El escaneo automático detectó nuevos dispositivos.\n\n"
+                    f"Red: {red}\n"
+                    f"Equipos detectados: {len(dispositivos_detectados)}\n"
+                    f"Nuevos agregados: {nuevos_agregados}"
+                )
+            )
         return {
             "mensaje": "Escaneo automático ejecutado correctamente",
             "red": red,

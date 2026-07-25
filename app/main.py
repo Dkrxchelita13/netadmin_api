@@ -45,18 +45,26 @@ from app.modelos import (
     UsuarioRegistro,
     UsuarioLogin,
     ConfiguracionEscaneoAutomatico,
-    CapturaConfiguracion
+    CapturaConfiguracion,
+    AlertaPrueba
 )
+
 from app.netmiko_admin import ejecutar_comando_red
 from app.paramiko_admin import ejecutar_comando_linux
+
 from app.config_comparador import (
     guardar_configuracion,
     listar_configuraciones_por_ip,
     comparar_ultimas_configuraciones
 )
 
-from app.reportes_pdf import generar_reporte_pdf# =========================================================
+from app.reportes_pdf import generar_reporte_pdf
+from app.alertas import enviar_alerta
+
+
+# =========================================================
 # INICIO Y CIERRE DE LA APLICACIÓN
+# =========================================================# INICIO Y CIERRE DE LA APLICACIÓN
 # =========================================================
 
 @asynccontextmanager
@@ -185,7 +193,17 @@ def crear_dispositivo(
         datos_nuevos=nuevo_dispositivo,
         resultado="OK"
     )
-
+    enviar_alerta(
+        asunto="NetAdmin API - Nuevo dispositivo registrado",
+        mensaje=(
+            "Se registró un nuevo dispositivo en NetAdmin API.\n\n"
+            f"IP: {nuevo_dispositivo['ip']}\n"
+            f"Hostname: {nuevo_dispositivo['hostname']}\n"
+            f"Tipo: {nuevo_dispositivo['tipo']}\n"
+            f"Estado: {nuevo_dispositivo['estado']}\n"
+            f"Usuario: {usuario_actual['username']}"
+        )
+    )
     return {
         "mensaje": "Dispositivo agregado correctamente",
         "dispositivo": nuevo_dispositivo
@@ -472,7 +490,9 @@ def obtener_auditoria_por_ip(
     return listar_auditoria_por_ip(ip)
 
 @app.get("/reporte/pdf")
-def descargar_reporte_pdf(usuario_actual: dict = Depends(requiere_admin)):
+def descargar_reporte_pdf(
+    usuario_actual: dict = Depends(requiere_admin)
+):
     try:
         ruta_pdf = generar_reporte_pdf()
 
@@ -481,7 +501,10 @@ def descargar_reporte_pdf(usuario_actual: dict = Depends(requiere_admin)):
             rol=usuario_actual["rol"],
             modulo="reportes",
             accion="GENERAR_PDF",
-            descripcion="Reporte PDF generado automaticamente desde la API",
+            descripcion=(
+                "Reporte PDF generado automáticamente "
+                "desde la API"
+            ),
             datos_nuevos={
                 "archivo": ruta_pdf
             },
@@ -504,8 +527,37 @@ def descargar_reporte_pdf(usuario_actual: dict = Depends(requiere_admin)):
             resultado="ERROR"
         )
 
-        raise HTTPException(status_code=500, detail=str(error))
-# =========================================================
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+
+@app.post("/alertas/probar")
+def probar_alerta(
+    datos: AlertaPrueba,
+    usuario_actual: dict = Depends(requiere_admin)
+):
+    resultado = enviar_alerta(
+        mensaje=datos.mensaje,
+        asunto=datos.asunto
+    )
+
+    registrar_evento_auditoria(
+        usuario=usuario_actual["username"],
+        rol=usuario_actual["rol"],
+        modulo="alertas",
+        accion="ENVIAR_ALERTA",
+        descripcion="Prueba manual de alerta",
+        datos_nuevos=resultado,
+        resultado="OK"
+    )
+
+    return {
+        "mensaje": "Proceso de alerta ejecutado",
+        "resultado": resultado
+    }
+    # =========================================================
 # EXPORTACIÓN
 # =========================================================
 
@@ -777,7 +829,10 @@ def comparar_configuracion_dispositivo(
         modulo="configuracion",
         accion="COMPARAR_CONFIGURACION",
         ip=ip,
-        descripcion="Comparación de configuración actual contra configuración anterior",
+        descripcion=(
+    "Comparación de configuración actual "
+    "contra configuración anterior"
+),
         datos_nuevos={
             "configuracion_anterior": resultado["configuracion_anterior"],
             "configuracion_actual": resultado["configuracion_actual"],
@@ -785,5 +840,27 @@ def comparar_configuracion_dispositivo(
         },
         resultado="OK"
     )
+
+    if resultado.get("hay_cambios", False):
+        enviar_alerta(
+            asunto=(
+                "NetAdmin API - "
+                "Cambio de configuración detectado"
+            ),
+            mensaje=(
+                "Se detectaron cambios en la configuración "
+                "de un dispositivo.\n\n"
+                f"IP: {ip}\n"
+                "Configuración anterior: "
+                f"{resultado['configuracion_anterior']['id']}\n"
+                "Configuración actual: "
+                f"{resultado['configuracion_actual']['id']}\n"
+                "Líneas agregadas: "
+                f"{len(resultado['lineas_agregadas'])}\n"
+                "Líneas eliminadas: "
+                f"{len(resultado['lineas_eliminadas'])}"
+            )
+        )
+
 
     return resultado
